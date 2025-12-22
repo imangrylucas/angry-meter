@@ -1,0 +1,44 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600&family=Plus+Jakarta+Sans:wght@800&display=swap');
+
+@theme {
+  /* THE RECALIBRATED PALETTE */
+  --color-kinetic: #FF2F2F;
+  --color-acceleration: #FF6F2E;
+  
+  /* NEW: The Deep Void Background */
+  --color-void: #151515;
+  
+  /* NEW: The Module/Surface Grey */
+  --color-surface: #1D1D1D;
+  
+  --color-signal: #FFFFFF;
+  --color-muted-text: #525252;
+
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-ancillary: "Archivo", sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-void);
+  color: var(--color-signal);
+  margin: 0;
+  
+  /* GLOBAL BRAND DOCTRINE */
+  font-family: var(--font-ancillary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, .font-brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+}
