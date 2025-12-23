@@ -299,8 +299,8 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
         {/* DATA CORE */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-30 pointer-events-none gap-2">
             <span 
-                // CHANGED: font-black -> font-extrabold
-                className="relative text-7xl font-brand font-extrabold italic tracking-tighter tabular-nums leading-none"
+                // CHANGED: text-7xl -> text-6xl (roughly 10% smaller)
+                className="relative text-6xl font-brand font-extrabold italic tracking-tighter tabular-nums leading-none"
                 style={{ 
                     color: color,
                     textShadow: `0 0 ${animatedScore * 0.2}px ${color}66`,
