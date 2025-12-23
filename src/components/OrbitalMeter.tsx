@@ -1,5 +1,4 @@
-import { useState, useRef } from 'react';
-import { useAngryEngine } from '../hooks/useAngryEngine';
+import { useState, useRef, useMemo } from 'react';
 
 interface OrbitalMeterProps {
   score: number;
@@ -10,31 +9,79 @@ interface OrbitalMeterProps {
   onInteract?: () => void;
 }
 
+// --- COLOR MATH HELPERS ---
+const hexToRgb = (hex: string) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+};
+
+const rgbToHex = (r: number, g: number, b: number) => {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+};
+
+const interpolateColor = (color1: string, color2: string, factor: number) => {
+  const c1 = hexToRgb(color1);
+  const c2 = hexToRgb(color2);
+  const r = Math.round(c1.r + factor * (c2.r - c1.r));
+  const g = Math.round(c1.g + factor * (c2.g - c1.g));
+  const b = Math.round(c1.b + factor * (c2.b - c1.b));
+  return rgbToHex(r, g, b);
+};
+
 export const OrbitalMeter = ({ 
   score, 
-  id = "1", 
   metric = "TGT", 
   onChange, 
   showHint = false, 
   onInteract 
 }: OrbitalMeterProps) => {
   
-  // FIX: Swapped 'label' for 'phase' to match the updated engine
-  const { color, phase, distortionScale } = useAngryEngine(score);
   const [isDragging, setIsDragging] = useState(false);
-  
   const startY = useRef<number>(0);
   const startScore = useRef<number>(0);
 
+  // --- SMOOTH GRADIENT LOGIC ---
+  const color = useMemo(() => {
+    // 1. Idle State (Grey)
+    if (score < 5) return '#525252';
+
+    // 2. Define Stops: [Score Threshold, Hex Color]
+    const stops = [
+      { t: 0,   c: '#FF2F2F' }, // Red
+      { t: 25,  c: '#FF6F2E' }, // Orange
+      { t: 50,  c: '#FFD02E' }, // Yellow
+      { t: 75,  c: '#2EFF86' }, // Green
+      { t: 100, c: '#00E0FF' }  // Blue
+    ];
+
+    // 3. Find which two stops we are between
+    for (let i = 0; i < stops.length - 1; i++) {
+      const start = stops[i];
+      const end = stops[i + 1];
+      
+      if (score >= start.t && score <= end.t) {
+        // Calculate percentage between these two specific stops (0.0 to 1.0)
+        const range = end.t - start.t;
+        const relativeScore = score - start.t;
+        const factor = relativeScore / range;
+        
+        return interpolateColor(start.c, end.c, factor);
+      }
+    }
+
+    return stops[stops.length - 1].c;
+  }, [score]);
+
   const rotation = score * 2.4;
-  const filterId = `heatHazeOrbit-${id}`;
 
   // --- INTERACTION HANDLERS ---
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!onChange) return;
-    
     if (onInteract) onInteract();
-
     setIsDragging(true);
     startY.current = e.clientY;
     startScore.current = score;
@@ -43,7 +90,6 @@ export const OrbitalMeter = ({
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging || !onChange) return;
-
     const deltaY = startY.current - e.clientY;
     const sensitivity = 0.5;
     let newScore = startScore.current + (deltaY * sensitivity);
@@ -78,40 +124,26 @@ export const OrbitalMeter = ({
             <span className="text-[9px] font-bold tracking-widest text-white">DRAG</span>
         </div>
       </div>
-
-      {/* --- FX DEFINITIONS --- */}
-      <svg className="absolute w-0 h-0">
-        <defs>
-          <filter id={filterId}>
-            <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" result="noise">
-              <animate attributeName="baseFrequency" values="0.02;0.025;0.02" dur="3s" repeatCount="indefinite" />
-            </feTurbulence>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale={distortionScale} />
-          </filter>
-        </defs>
-      </svg>
       
       {/* AMBIENT GLOW */}
       <div 
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] h-[180px] rounded-full blur-[60px] transition-all duration-300 pointer-events-none z-0"
         style={{ 
           backgroundColor: color, 
-          opacity: score < 2 ? 0 : (isDragging ? 0.4 : 0.25) 
+          opacity: score < 5 ? 0 : (isDragging ? 0.3 : 0.15) 
         }}
       />
 
       {/* OPTICAL CONTAINER */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
-           style={{ filter: distortionScale > 0 ? `url(#${filterId})` : 'none' }}>
-           
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           {/* ROTATING RETICLE */}
           <div 
-            className="absolute inset-4 border-2 border-dashed rounded-full transition-transform duration-75 ease-out z-10"
+            className="absolute inset-4 border-2 border-dashed rounded-full transition-colors duration-75 ease-linear z-10"
             style={{ 
                 borderColor: color,
                 transform: `rotate(${rotation}deg)`,
-                opacity: score < 2 ? 0.1 : 1,
-                boxShadow: score < 2 ? 'none' : `0 0 15px ${color}33`
+                boxShadow: score < 5 ? 'none' : `0 0 10px ${color}33`,
+                opacity: score < 5 ? 0.3 : 1
             }}
           />
           
@@ -120,7 +152,8 @@ export const OrbitalMeter = ({
             className="absolute inset-8 border border-white/10 rounded-full z-10"
             style={{ 
                 transform: `rotate(-${rotation * 0.5}deg)`,
-                borderColor: score < 2 ? 'rgba(255,255,255,0.1)' : color 
+                borderColor: color,
+                opacity: score < 5 ? 0.3 : 1
             }}
           >
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-2" style={{ backgroundColor: color }} />
@@ -129,25 +162,21 @@ export const OrbitalMeter = ({
       </div>
 
       {/* CORE DATA */}
-      <div className="flex flex-col items-center z-20 pointer-events-none">
-        <div className="text-xs text-muted-text tracking-[0.3em] mb-1 uppercase">
+      {/* FIX: Added pb-3 to nudge the entire text block upwards for optical centering */}
+      <div className="flex flex-col items-center justify-center z-20 pointer-events-none w-full pb-3">
+        <div className="text-xs text-muted-text tracking-[0.3em] mb-1 uppercase text-center w-full">
             {metric}
         </div>
         
+        {/* FIX: Restored 'italic' */}
         <div 
-            className="text-5xl font-brand font-bold tabular-nums tracking-tighter italic" 
+            className="text-5xl font-brand font-bold tabular-nums tracking-tighter italic text-center w-full" 
             style={{ 
                 color,
-                textShadow: score < 2 ? 'none' : `0 0 ${score * 0.2}px ${color}66`,
-                filter: distortionScale > 0 ? `blur(${distortionScale * 0.1}px)` : 'none'
+                textShadow: score < 5 ? 'none' : `0 0 ${score * 0.1}px ${color}44`
             }}
         >
             {Math.round(score)}
-        </div>
-        
-        {/* FIX: Using 'phase' here instead of 'label' */}
-        <div className="text-[9px] font-brand font-bold italic tracking-[0.2em] text-muted-text uppercase mt-2">
-              {phase}
         </div>
       </div>
 

@@ -11,7 +11,6 @@ function App() {
   // --- UI STATE ---
   const [userHasInteracted, setUserHasInteracted] = useState(false);
   const [showReport, setShowReport] = useState(false);
-  // NEW: Track if we are currently animating out
   const [isClosing, setIsClosing] = useState(false);
 
   const totalScore = useMemo(() => {
@@ -28,7 +27,6 @@ function App() {
     return () => clearInterval(interval);
   }, [tickerData]);
 
-  // --- HANDLERS ---
   const openReport = () => {
     setIsClosing(false);
     setShowReport(true);
@@ -36,7 +34,6 @@ function App() {
 
   const closeReport = () => {
     setIsClosing(true);
-    // Wait for the animation (300ms) to finish before unmounting
     setTimeout(() => {
         setShowReport(false);
         setIsClosing(false);
@@ -68,21 +65,15 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-12 bg-void overflow-hidden relative">
-      {/* --- CUSTOM ANIMATION STYLES --- */}
       <style>{`
-        /* OPEN: Expands from 0 to 100% scale */
         @keyframes expand-center {
           0% { opacity: 0; transform: scale(0); }
           100% { opacity: 1; transform: scale(1); }
         }
-        
-        /* CLOSE: Shrinks from 100% to 0 scale */
         @keyframes collapse-center {
           0% { opacity: 1; transform: scale(1); }
           100% { opacity: 0; transform: scale(0); }
         }
-
-        /* OVERLAY FADE LOGIC */
         @keyframes fade-in-overlay { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-out-overlay { from { opacity: 1; } to { opacity: 0; } }
       `}</style>
@@ -90,26 +81,26 @@ function App() {
       {/* --- DAMAGE REPORT OVERLAY --- */}
       {showReport && (
         <div 
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-            // Apply different animation based on closing state
+            // FIXED: Using bg-black/20 to reduce "darkness" but keep focus
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm"
             style={{ 
                 animation: isClosing ? 'fade-out-overlay 0.3s forwards' : 'fade-in-overlay 0.3s forwards' 
             }}
             onClick={closeReport}
         >
             <div 
-                className="w-full max-w-lg bg-[#1D1D1D] border backdrop-blur-xl p-8 relative shadow-2xl rounded-2xl"
+                // FIXED: Very subtle black tint (10%) to let blur shine.
+                // Added border-white/10 for definition against the dark bg.
+                className="w-full max-w-lg bg-black/10 backdrop-blur-2xl border border-white/10 p-8 relative shadow-2xl rounded-2xl"
                 style={{ 
                     borderColor: color, 
                     boxShadow: `0 0 50px -10px ${color}33`,
-                    // Dynamic Animation Switcher
                     animation: isClosing 
-                        ? 'collapse-center 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards' // Ease In (Accelerate out)
-                        : 'expand-center 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards' // Ease Out (Pop in)
+                        ? 'collapse-center 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards' 
+                        : 'expand-center 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards' 
                 }}
                 onClick={(e) => e.stopPropagation()} 
             >
-                {/* Header */}
                 <div className="flex justify-between items-start mb-8 border-b border-white/10 pb-4">
                     <div>
                         <h2 className="text-2xl font-sans font-extrabold text-white uppercase tracking-tight">
@@ -130,7 +121,6 @@ function App() {
                     </button>
                 </div>
 
-                {/* Data Grid */}
                 <div className="space-y-6">
                     {reportData.map((item, i) => (
                         <div key={i} className="flex flex-col gap-1">
@@ -156,7 +146,6 @@ function App() {
                     ))}
                 </div>
 
-                {/* Footer */}
                 <div className="mt-8 pt-4 border-t border-white/5 flex justify-between items-center opacity-50">
                     <span className="text-[9px] font-brand font-bold tracking-widest text-muted-text">SYS.ID: ANGRY-DIGITAL-V0.5</span>
                     <span className="text-[9px] font-brand font-bold tracking-widest text-muted-text">STATUS: ACTIVE</span>
@@ -188,8 +177,10 @@ function App() {
             <h1 className="text-4xl md:text-5xl font-brand text-signal tracking-[-0.04em]">
             ANGRY DIGITAL
             </h1>
+            
+            {/* UPDATED COPY HERE */}
             <p className="text-[10px] text-muted-text tracking-[0.3em] uppercase">
-            COMPETITIVE DISPLACEMENT ENGINE
+            COMPETITOR DISPLACEMENT ENGINE
             </p>
         </div>
 
@@ -223,7 +214,7 @@ function App() {
             <div className="scale-110">
                 <AngryMeter 
                     score={totalScore} 
-                    onClick={openReport} // Use the new handler
+                    onClick={openReport} 
                 />
             </div>
 

@@ -3,24 +3,16 @@
 @theme {
   /* --- THE ANGRY PALETTE (CONVERTED TO OKLCH) --- */
   
-  /* Was #FF2F2F -> Now significantly more vibrant on P3 screens */
-  --color-kinetic: oklch(62.8% 0.25 29.23);
+  /* ADJUSTED: Slightly softer/more orange-shifted red (The "96%" sweet spot) */
+  --color-kinetic: oklch(63.5% 0.24 32.5);
   
   /* Was #FF6F2E */
   --color-acceleration: oklch(68.6% 0.20 46.7);
   
-  /* Was #151515 -> Deep Neutral Black */
   --color-void: oklch(14.5% 0 0);
-  
-  /* Was #1D1D1D -> Surface Grey */
   --color-surface: oklch(17.8% 0 0);
-  
-  /* Was #FFFFFF */
   --color-signal: oklch(100% 0 0);
-  
-  /* Was #525252 */
   --color-muted-text: oklch(46.3% 0 0);
-
 
   /* --- FONTS --- */
   --font-brand: "Archivo", sans-serif;
@@ -35,22 +27,13 @@ body {
   background-color: var(--color-void);
   color: var(--color-signal);
   margin: 0;
-  
-  /* DEFAULT BODY FONT: Archivo (Brand) */
   font-family: var(--font-brand);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: -0.025em;
-  
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* CLASS MAPPINGS */
-.font-brand {
-  font-family: var(--font-brand);
-}
-
-.font-sans, h1, h2, h3 {
-  font-family: var(--font-sans);
-}
+.font-brand { font-family: var(--font-brand); }
+.font-sans, h1, h2, h3 { font-family: var(--font-sans); }

@@ -6,7 +6,6 @@ interface AngryMeterProps {
   onClick?: () => void;
 }
 
-// Helper to determine phase based on raw input, not animated values
 const getPhaseData = (score: number) => {
   if (score > 70) return { id: 'RAGE', rank: 3 };
   if (score > 30) return { id: 'AGITATION', rank: 2 };
@@ -21,11 +20,9 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
   const isMovingRef = useRef(false);
   const requestRef = useRef<number>(0);
 
-  // --- PHASE TRANSITION STATE ---
   const [triggerShake, setTriggerShake] = useState(false);
   const [triggerFlare, setTriggerFlare] = useState(false);
   
-  // We use the raw score to determine the "Stable Phase" to avoid flickering
   const { id: stablePhase, rank: stableRank } = getPhaseData(score);
   const prevRankRef = useRef<number>(stableRank);
 
@@ -42,8 +39,11 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
 
       smoothScoreRef.current += diff * 0.1;
 
+      // OSCILLATION LOGIC
+      // If we are at 98% or higher, we stop breathing (Lock to true value)
       const time = Date.now();
-      const breath = Math.sin(time / 800) * 0.8;
+      const isMaxed = smoothScoreRef.current >= 98;
+      const breath = isMaxed ? 0 : Math.sin(time / 800) * 0.8;
       
       let finalValue = smoothScoreRef.current + breath;
       finalValue = Math.max(0, Math.min(100, finalValue));
@@ -65,26 +65,18 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
     distortionScale
   } = useAngryEngine(animatedScore);
 
-  // --- LOGIC: PHASE CHANGE & DIRECTION CHECK ---
+  // --- LOGIC: PHASE CHANGE ---
   useEffect(() => {
-    // Only trigger if the rank has CHANGED
     if (stableRank !== prevRankRef.current) {
-        
-        // DIRECTION CHECK: Only trigger FX if we are going UP (Leveling Up)
         if (stableRank > prevRankRef.current) {
             setTriggerShake(true);
             setTriggerFlare(true);
-
-            // Reset effects
             setTimeout(() => setTriggerShake(false), 500); 
             setTimeout(() => setTriggerFlare(false), 800); 
         }
-
-        // Update the ref to the new rank
         prevRankRef.current = stableRank;
     }
   }, [stableRank]); 
-
 
   // --- GEOMETRY ---
   const radius = 80;
@@ -109,12 +101,24 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
     }));
   }, []);
 
+  // --- FLAME LOGIC ---
+  const flameIntensity = stablePhase === 'RAGE' 
+    ? Math.max(0, (animatedScore - 70) / 30) 
+    : 0;
+
   return (
     <div 
         className={`relative group ${onClick ? 'cursor-pointer' : ''}`}
         onClick={onClick}
     >
       <style>{`
+        /* FLAMES: Slower, consistent pacing now */
+        @keyframes flame-rise {
+            0% { transform: translateY(0) scaleX(1); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateY(-20px) scaleX(0.5); opacity: 0; }
+        }
+
         /* PHASE FX ANIMATIONS */
         @keyframes impact-shake {
           0% { transform: translate(0, 0); }
@@ -299,7 +303,6 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
         {/* DATA CORE */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-30 pointer-events-none gap-2">
             <span 
-                // CHANGED: text-6xl -> text-5xl
                 className="relative text-5xl font-brand font-extrabold italic tracking-tighter tabular-nums leading-none"
                 style={{ 
                     color: color,
@@ -310,13 +313,33 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
                 {Math.round(animatedScore)}
             </span>
 
-            <div className="flex flex-col items-center gap-1">
-                <span className="text-[10px] font-brand font-bold italic tracking-[0.2em] text-muted-text uppercase">
+            <div className="flex flex-col items-center gap-1 relative">
+                
+                {/* FLAMES CONTAINER */}
+                {stablePhase === 'RAGE' && (
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-10 pointer-events-none -z-10 flex justify-center items-end opacity-80">
+                         {[...Array(5)].map((_, i) => (
+                             <div 
+                                key={i}
+                                className="w-1 bg-[#FF2F2F] rounded-full mx-0.5"
+                                style={{
+                                    height: '10px',
+                                    opacity: flameIntensity, 
+                                    // FIXED: Slower, random but consistent range (1.2s to 1.7s)
+                                    animation: `flame-rise ${1.2 + Math.random() * 0.5}s linear infinite`,
+                                    animationDelay: `${Math.random()}s`
+                                }}
+                             />
+                         ))}
+                    </div>
+                )}
+
+                <span className="text-[10px] font-brand font-bold italic tracking-[0.2em] text-muted-text uppercase relative z-10">
                     {stablePhase}
                 </span>
                 
                 <div 
-                    className="h-1 rounded-full"
+                    className="h-1 rounded-full relative z-10"
                     style={{ 
                         backgroundColor: color,
                         width: `${15 + (animatedScore * 0.6)}px`,
