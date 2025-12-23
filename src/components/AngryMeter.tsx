@@ -62,8 +62,8 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
     rotationSpeed, 
     shadowIntensity, 
     pulseSpeed, 
-    distortionScale,
-    // We ignore the hook's phase because it breathes. We use stablePhase instead.
+    distortionScale
+    // FIX: Removed unused 'phase' variable here to prevent build error
   } = useAngryEngine(animatedScore);
 
   // --- LOGIC: PHASE CHANGE & DIRECTION CHECK ---
@@ -84,7 +84,7 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
         // Update the ref to the new rank
         prevRankRef.current = stableRank;
     }
-  }, [stableRank]); // Only runs when the stable calculated phase changes
+  }, [stableRank]); 
 
 
   // --- GEOMETRY ---
@@ -311,7 +311,6 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
             </span>
 
             <div className="flex flex-col items-center gap-1">
-                {/* Use Stable Phase for label */}
                 <span className="text-[10px] font-brand font-bold italic tracking-[0.2em] text-muted-text uppercase">
                     {stablePhase}
                 </span>
