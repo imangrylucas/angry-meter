@@ -63,7 +63,6 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
     shadowIntensity, 
     pulseSpeed, 
     distortionScale
-    // FIX: Removed unused 'phase' variable here to prevent build error
   } = useAngryEngine(animatedScore);
 
   // --- LOGIC: PHASE CHANGE & DIRECTION CHECK ---
@@ -300,7 +299,8 @@ export const AngryMeter = ({ score = 50, onClick }: AngryMeterProps) => {
         {/* DATA CORE */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-30 pointer-events-none gap-2">
             <span 
-                className="relative text-7xl font-brand font-black italic tracking-tighter tabular-nums leading-none"
+                // CHANGED: font-black -> font-extrabold
+                className="relative text-7xl font-brand font-extrabold italic tracking-tighter tabular-nums leading-none"
                 style={{ 
                     color: color,
                     textShadow: `0 0 ${animatedScore * 0.2}px ${color}66`,
