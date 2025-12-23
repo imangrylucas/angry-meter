@@ -1,16 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-  /* COLORS */
-  --color-kinetic: #FF2F2F;
-  --color-acceleration: #FF6F2E;
-  --color-void: #151515;
-  --color-surface: #1D1D1D;
-  --color-signal: #FFFFFF;
-  --color-muted-text: #525252;
+  /* --- THE ANGRY PALETTE (CONVERTED TO OKLCH) --- */
+  
+  /* Was #FF2F2F -> Now significantly more vibrant on P3 screens */
+  --color-kinetic: oklch(62.8% 0.25 29.23);
+  
+  /* Was #FF6F2E */
+  --color-acceleration: oklch(68.6% 0.20 46.7);
+  
+  /* Was #151515 -> Deep Neutral Black */
+  --color-void: oklch(14.5% 0 0);
+  
+  /* Was #1D1D1D -> Surface Grey */
+  --color-surface: oklch(17.8% 0 0);
+  
+  /* Was #FFFFFF */
+  --color-signal: oklch(100% 0 0);
+  
+  /* Was #525252 */
+  --color-muted-text: oklch(46.3% 0 0);
 
-  /* FONTS */
-  /* We define the font families explicitly */
+
+  /* --- FONTS --- */
   --font-brand: "Archivo", sans-serif;
   --font-sans: "Plus Jakarta Sans", sans-serif;
 }
@@ -35,13 +47,10 @@ body {
 }
 
 /* CLASS MAPPINGS */
-
-/* This ensures 'font-brand' actually uses Archivo */
 .font-brand {
   font-family: var(--font-brand);
 }
 
-/* This ensures 'font-sans' uses Plus Jakarta */
 .font-sans, h1, h2, h3 {
   font-family: var(--font-sans);
 }
