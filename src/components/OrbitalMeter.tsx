@@ -54,8 +54,8 @@ export const OrbitalMeter = ({
       { t: 0,   c: '#FF2F2F' }, // Red
       { t: 25,  c: '#FF6F2E' }, // Orange
       { t: 50,  c: '#FFD02E' }, // Yellow
-      { t: 75,  c: '#2EFF86' }, // Green
-      { t: 100, c: '#00E0FF' }  // Blue
+      { t: 75,  c: '#00E0FF' }, // Blue (Swapped from 100)
+      { t: 100, c: '#2EFF86' }  // Green (Swapped from 75)
     ];
 
     // 3. Find which two stops we are between
@@ -162,13 +162,11 @@ export const OrbitalMeter = ({
       </div>
 
       {/* CORE DATA */}
-      {/* FIX: Added pb-3 to nudge the entire text block upwards for optical centering */}
       <div className="flex flex-col items-center justify-center z-20 pointer-events-none w-full pb-3">
         <div className="text-xs text-muted-text tracking-[0.3em] mb-1 uppercase text-center w-full">
             {metric}
         </div>
         
-        {/* FIX: Restored 'italic' */}
         <div 
             className="text-5xl font-brand font-bold tabular-nums tracking-tighter italic text-center w-full" 
             style={{ 
