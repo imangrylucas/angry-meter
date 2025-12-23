@@ -1,16 +1,88 @@
+import { useState, useRef } from 'react';
 import { useAngryEngine } from '../hooks/useAngryEngine';
 
-export const VerticalMeter = ({ score }: { score: number }) => {
-  const { color, label, shadowIntensity, distortionScale } = useAngryEngine(score);
+interface VerticalMeterProps {
+  score: number;
+  id?: string;
+  metric?: string;
+  onChange?: (newVal: number) => void;
+  showHint?: boolean;
+  onInteract?: () => void;
+}
+
+export const VerticalMeter = ({ 
+  score, 
+  id = "1", 
+  metric = "TGT", 
+  onChange, 
+  showHint = false, 
+  onInteract 
+}: VerticalMeterProps) => {
+  
+  // FIX: Destructure 'phase' instead of 'label'
+  const { color, phase, distortionScale } = useAngryEngine(score);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const startY = useRef<number>(0);
+  const startScore = useRef<number>(0);
+
+  const rotation = score * 2.4;
+  const filterId = `heatHazeOrbit-${id}`;
+
+  // --- INTERACTION HANDLERS ---
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!onChange) return;
+    
+    if (onInteract) onInteract();
+
+    setIsDragging(true);
+    startY.current = e.clientY;
+    startScore.current = score;
+    (e.target as Element).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging || !onChange) return;
+
+    const deltaY = startY.current - e.clientY;
+    const sensitivity = 0.5;
+    let newScore = startScore.current + (deltaY * sensitivity);
+    newScore = Math.max(0, Math.min(100, newScore));
+    onChange(newScore);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    (e.target as Element).releasePointerCapture(e.pointerId);
+  };
 
   return (
-    <div className="relative group h-[300px] w-[100px] flex flex-col items-center justify-end">
+    <div 
+      className={`relative w-[200px] h-[200px] flex items-center justify-center touch-none select-none group ${onChange ? 'cursor-ns-resize' : ''}`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+    >
       
+      {/* --- HINT OVERLAY --- */}
+      <div 
+        className={`absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-700 ease-in-out ${showHint ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <div className="flex flex-col items-center gap-1 bg-void/80 backdrop-blur-sm p-2 rounded border border-white/10 animate-pulse">
+            <svg width="12" height="20" viewBox="0 0 12 20" fill="none" className="text-white">
+                <path d="M6 0L0 6H12L6 0Z" fill="currentColor"/>
+                <path d="M6 20L12 14H0L6 20Z" fill="currentColor"/>
+                <rect x="5" y="5" width="2" height="10" fill="currentColor"/>
+            </svg>
+            <span className="text-[9px] font-bold tracking-widest text-white">DRAG</span>
+        </div>
+      </div>
+
       {/* --- FX DEFINITIONS --- */}
-      {/* Invisible SVG to hold the unique filter for this component */}
       <svg className="absolute w-0 h-0">
         <defs>
-          <filter id="heatHazeSilo">
+          <filter id={filterId}>
             <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" result="noise">
               <animate attributeName="baseFrequency" values="0.02;0.025;0.02" dur="3s" repeatCount="indefinite" />
             </feTurbulence>
@@ -18,110 +90,67 @@ export const VerticalMeter = ({ score }: { score: number }) => {
           </filter>
         </defs>
       </svg>
-
+      
       {/* AMBIENT GLOW */}
       <div 
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[120px] h-[120px] rounded-full blur-[50px] transition-all duration-300 pointer-events-none z-0"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] h-[180px] rounded-full blur-[60px] transition-all duration-300 pointer-events-none z-0"
         style={{ 
           backgroundColor: color, 
-          opacity: score < 2 ? 0 : 0.3 
+          opacity: score < 2 ? 0 : (isDragging ? 0.4 : 0.25) 
         }}
       />
 
-      {/* HOUSING CONTAINER */}
-      <div className="relative z-10 w-16 h-full bg-surface/20 border border-white/10 rounded-full overflow-hidden backdrop-blur-sm">
-        
-        {/* 1. BACKGROUND RULER */}
-        <div className="absolute inset-0 flex flex-col justify-between py-6 px-3 opacity-30 z-0">
-            {[...Array(12)].map((_, i) => (
-                <div key={i} className="w-full h-[1px] bg-white/50" />
-            ))}
-        </div>
-
-        {/* 2. ACTIVE LIQUID PLASMA */}
-        <div 
-            className="absolute bottom-0 left-0 right-0 transition-all duration-300 ease-out z-10"
+      {/* OPTICAL CONTAINER */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
+           style={{ filter: distortionScale > 0 ? `url(#${filterId})` : 'none' }}>
+           
+          {/* ROTATING RETICLE */}
+          <div 
+            className="absolute inset-4 border-2 border-dashed rounded-full transition-transform duration-75 ease-out z-10"
             style={{ 
-                height: `${score}%`,
-                backgroundColor: color,
-                boxShadow: score < 2 ? 'none' : `0 0 ${shadowIntensity * 40}px ${color}`
+                borderColor: color,
+                transform: `rotate(${rotation}deg)`,
+                opacity: score < 2 ? 0.1 : 1,
+                boxShadow: score < 2 ? 'none' : `0 0 15px ${color}33`
             }}
-        >
-            {/* A. RISING BUBBLES TEXTURE */}
-            <div 
-                className="absolute inset-0 opacity-40 mix-blend-overlay" 
-                style={{
-                    backgroundImage: `radial-gradient(rgba(255,255,255,0.8) 1.5px, transparent 1.5px), radial-gradient(rgba(255,255,255,0.8) 1.5px, transparent 1.5px)`,
-                    backgroundSize: '20px 20px',
-                    backgroundPosition: '0 0, 10px 10px',
-                    animation: 'riseBubbles 4s linear infinite'
-                }}
-            />
-
-            {/* B. LIQUID SURFACE (WAVE ENGINE) */}
-            {/* LOGIC UPDATE: We hide the wave entirely when score > 98%. 
-                This ensures the 'square' top of the liquid fills the 'rounded' top of the container perfectly without artifacts. */}
-            <div 
-                className="absolute left-0 right-0 -top-[12px] h-[20px] overflow-hidden transition-opacity duration-300"
-                style={{ opacity: score > 98 ? 0 : 1 }}
-            >
-                
-                {/* Wave Layer 1 (Back/Slow) */}
-                <div 
-                    className="absolute inset-0 w-[200%]"
-                    style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23FFFFFF' fill-opacity='0.5' d='M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z' /%3E%3C/svg%3E")`,
-                        backgroundSize: '50% 100%',
-                        animation: 'waveMove 3s linear infinite'
-                    }} 
-                />
-                
-                {/* Wave Layer 2 (Front/Fast) */}
-                <div 
-                    className="absolute inset-0 w-[200%]"
-                    style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23FFFFFF' fill-opacity='0.9' d='M0,160L48,176C96,192,192,224,288,224C384,224,480,192,576,165.3C672,139,768,117,864,128C960,139,1056,181,1152,197.3C1248,213,1344,203,1392,197.3L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z' /%3E%3C/svg%3E")`,
-                        backgroundSize: '50% 100%',
-                        animation: 'waveMove 2s linear infinite reverse',
-                        opacity: score < 2 ? 0 : 1 
-                    }} 
-                />
-            </div>
-        </div>
-
-        {/* 3. GLASS TUBE REFLECTION */}
-        <div className="absolute inset-0 z-20 pointer-events-none rounded-full ring-1 ring-inset ring-white/10 bg-gradient-to-r from-white/10 via-transparent to-white/10 opacity-50" />
+          />
+          
+          {/* COUNTER-ROTATING RING */}
+          <div 
+            className="absolute inset-8 border border-white/10 rounded-full z-10"
+            style={{ 
+                transform: `rotate(-${rotation * 0.5}deg)`,
+                borderColor: score < 2 ? 'rgba(255,255,255,0.1)' : color 
+            }}
+          >
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-2" style={{ backgroundColor: color }} />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-2" style={{ backgroundColor: color }} />
+          </div>
       </div>
 
-      {/* FOOTER LABEL */}
-      <div className="absolute -bottom-16 text-center z-10">
-        <span 
-            className="text-3xl font-brand font-black italic tracking-tighter tabular-nums transition-colors inline-block" 
+      {/* CORE DATA */}
+      <div className="flex flex-col items-center z-20 pointer-events-none">
+        <div className="text-xs text-muted-text tracking-[0.3em] mb-1 uppercase">
+            {metric}
+        </div>
+        
+        <div 
+            className="text-5xl font-brand font-bold tabular-nums tracking-tighter italic" 
             style={{ 
                 color,
                 textShadow: score < 2 ? 'none' : `0 0 ${score * 0.2}px ${color}66`,
-                // HEAT DISTORTION: Applied strictly to the text only.
-                filter: distortionScale > 0 ? 'url(#heatHazeSilo)' : 'none'
+                filter: distortionScale > 0 ? `blur(${distortionScale * 0.1}px)` : 'none'
             }}
         >
             {Math.round(score)}
-        </span>
-        <div className="text-[9px] font-brand font-bold italic tracking-[0.2em] text-muted-text uppercase mt-1">
-            {label}
+        </div>
+        
+        {/* FIX: Use 'phase' here instead of 'label' */}
+        <div className="text-[9px] font-brand font-bold italic tracking-[0.2em] text-muted-text uppercase mt-2">
+              {phase}
         </div>
       </div>
-      
-      {/* PHYSICS ANIMATION */}
-      <style>{`
-        @keyframes riseBubbles {
-            0% { background-position: 0px 0px, 10px 10px; }
-            100% { background-position: 0px -20px, 10px -10px; }
-        }
-        @keyframes waveMove {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-      `}</style>
+
     </div>
   );
 };
