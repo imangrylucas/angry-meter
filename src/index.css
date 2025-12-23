@@ -1,23 +1,16 @@
 @import "tailwindcss";
 
-/* FIX: This URL now includes 'ital' and weights 100-900 for both fonts */
-@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
-
 @theme {
-  /* THE RECALIBRATED PALETTE */
+  /* COLORS */
   --color-kinetic: #FF2F2F;
   --color-acceleration: #FF6F2E;
-  
-  /* NEW: The Deep Void Background */
   --color-void: #151515;
-  
-  /* NEW: The Module/Surface Grey */
   --color-surface: #1D1D1D;
-  
   --color-signal: #FFFFFF;
   --color-muted-text: #525252;
 
-  /* FIX: Explicitly set font-brand to Archivo to match your code usage */
+  /* FONTS */
+  /* We define the font families explicitly */
   --font-brand: "Archivo", sans-serif;
   --font-sans: "Plus Jakarta Sans", sans-serif;
 }
@@ -31,8 +24,8 @@ body {
   color: var(--color-signal);
   margin: 0;
   
-  /* GLOBAL BRAND DOCTRINE */
-  font-family: var(--font-brand); /* Default to Archivo */
+  /* DEFAULT BODY FONT: Archivo (Brand) */
+  font-family: var(--font-brand);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: -0.025em;
@@ -41,11 +34,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Ensure helper classes map correctly */
+/* CLASS MAPPINGS */
+
+/* This ensures 'font-brand' actually uses Archivo */
 .font-brand {
   font-family: var(--font-brand);
 }
 
-.font-sans {
+/* This ensures 'font-sans' uses Plus Jakarta */
+.font-sans, h1, h2, h3 {
   font-family: var(--font-sans);
 }
