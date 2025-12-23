@@ -3,6 +3,53 @@ import { AngryMeter } from './components/AngryMeter';
 import { OrbitalMeter } from './components/OrbitalMeter';
 import { useAngryEngine } from './hooks/useAngryEngine';
 
+// --- COLOR UTILITIES (Shared with OrbitalMeter) ---
+const hexToRgb = (hex: string) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+};
+
+const rgbToHex = (r: number, g: number, b: number) => {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+};
+
+const interpolateColor = (color1: string, color2: string, factor: number) => {
+  const c1 = hexToRgb(color1);
+  const c2 = hexToRgb(color2);
+  const r = Math.round(c1.r + factor * (c2.r - c1.r));
+  const g = Math.round(c1.g + factor * (c2.g - c1.g));
+  const b = Math.round(c1.b + factor * (c2.b - c1.b));
+  return rgbToHex(r, g, b);
+};
+
+// Helper to get the exact color for a score
+const getMeterColor = (score: number) => {
+    if (score < 5) return '#525252'; // Idle Grey
+
+    const stops = [
+      { t: 0,   c: '#FF2F2F' }, // Red
+      { t: 25,  c: '#FF6F2E' }, // Orange
+      { t: 50,  c: '#FFD02E' }, // Yellow
+      { t: 75,  c: '#00E0FF' }, // Blue
+      { t: 100, c: '#2EFF86' }  // Green
+    ];
+
+    for (let i = 0; i < stops.length - 1; i++) {
+      const start = stops[i];
+      const end = stops[i + 1];
+      if (score >= start.t && score <= end.t) {
+        const range = end.t - start.t;
+        const relativeScore = score - start.t;
+        return interpolateColor(start.c, end.c, relativeScore / range);
+      }
+    }
+    return stops[stops.length - 1].c;
+};
+
 function App() {
   const [volume, setVolume] = useState(0); 
   const [timing, setTiming] = useState(0); 
@@ -81,7 +128,6 @@ function App() {
       {/* --- DAMAGE REPORT OVERLAY --- */}
       {showReport && (
         <div 
-            // FIXED: Using bg-black/20 to reduce "darkness" but keep focus
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm"
             style={{ 
                 animation: isClosing ? 'fade-out-overlay 0.3s forwards' : 'fade-in-overlay 0.3s forwards' 
@@ -89,8 +135,6 @@ function App() {
             onClick={closeReport}
         >
             <div 
-                // FIXED: Very subtle black tint (10%) to let blur shine.
-                // Added border-white/10 for definition against the dark bg.
                 className="w-full max-w-lg bg-black/10 backdrop-blur-2xl border border-white/10 p-8 relative shadow-2xl rounded-2xl"
                 style={{ 
                     borderColor: color, 
@@ -177,8 +221,6 @@ function App() {
             <h1 className="text-4xl md:text-5xl font-brand text-signal tracking-[-0.04em]">
             ANGRY DIGITAL
             </h1>
-            
-            {/* UPDATED COPY HERE */}
             <p className="text-[10px] text-muted-text tracking-[0.3em] uppercase">
             COMPETITOR DISPLACEMENT ENGINE
             </p>
@@ -186,20 +228,17 @@ function App() {
 
         {/* PRIMARY SHOWCASE */}
         <div className="flex flex-col md:flex-row items-center justify-center w-full py-4 gap-12">
-            
             {/* LEFT: TACTICAL FEED */}
             <div className="flex flex-col items-end text-right gap-2 md:w-[250px]">
                  <span className="text-[9px] text-muted-text tracking-[0.2em] font-bold uppercase opacity-50">
                     STATUS FEED
                  </span>
-                 
                  <span 
                     className="text-2xl font-sans font-extrabold tracking-tight uppercase leading-none transition-colors duration-300"
                     style={{ color: color }}
                  >
                     {phaseTitle}
                  </span>
-                 
                  <div className="h-4 overflow-hidden relative w-full flex justify-end">
                     <span 
                         key={tickerIndex} 
@@ -212,10 +251,7 @@ function App() {
 
             {/* CENTER: ANGRY METER */}
             <div className="scale-110">
-                <AngryMeter 
-                    score={totalScore} 
-                    onClick={openReport} 
-                />
+                <AngryMeter score={totalScore} onClick={openReport} />
             </div>
 
              {/* RIGHT: BALANCE */}
@@ -225,51 +261,48 @@ function App() {
         {/* INPUT DASHBOARD */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 w-full max-w-5xl justify-items-center mt-4 p-8 border-t border-white/5">
             
+            {/* METER 1: VOLUME */}
             <div className="flex flex-col items-center gap-4 w-full max-w-[200px]">
                 <div className="text-center space-y-1">
                     <span className="text-[9px] text-muted-text tracking-widest font-bold uppercase block">VOLUME STOLEN</span>
-                    <span className="text-[9px] text-kinetic opacity-50 block tracking-widest font-bold uppercase">WEIGHT: 40%</span>
+                    <span className="text-[9px] tracking-widest font-bold uppercase block">
+                        <span className="text-muted-text opacity-50">WEIGHT: </span>
+                        <span style={{ color: getMeterColor(volume) }}>40%</span>
+                    </span>
                 </div>
-                
                 <OrbitalMeter 
-                    score={volume} 
-                    id="vol" 
-                    metric="VOL" 
-                    onChange={setVolume} 
-                    showHint={!userHasInteracted}
-                    onInteract={() => setUserHasInteracted(true)}
+                    score={volume} id="vol" metric="VOL" 
+                    onChange={setVolume} showHint={!userHasInteracted} onInteract={() => setUserHasInteracted(true)}
                 />
             </div>
 
+            {/* METER 2: TIMING */}
             <div className="flex flex-col items-center gap-4 w-full max-w-[200px]">
                 <div className="text-center space-y-1">
                     <span className="text-[9px] text-muted-text tracking-widest font-bold uppercase block">PRE-EMPTION</span>
-                    <span className="text-[9px] text-kinetic opacity-50 block tracking-widest font-bold uppercase">WEIGHT: 30%</span>
+                    <span className="text-[9px] tracking-widest font-bold uppercase block">
+                        <span className="text-muted-text opacity-50">WEIGHT: </span>
+                        <span style={{ color: getMeterColor(timing) }}>30%</span>
+                    </span>
                 </div>
-
                 <OrbitalMeter 
-                    score={timing} 
-                    id="tme" 
-                    metric="TME" 
-                    onChange={setTiming}
-                    showHint={!userHasInteracted}
-                    onInteract={() => setUserHasInteracted(true)}
+                    score={timing} id="tme" metric="TME" 
+                    onChange={setTiming} showHint={!userHasInteracted} onInteract={() => setUserHasInteracted(true)}
                 />
             </div>
 
+            {/* METER 3: DISPLACEMENT */}
             <div className="flex flex-col items-center gap-4 w-full max-w-[200px]">
                 <div className="text-center space-y-1">
                     <span className="text-[9px] text-muted-text tracking-widest font-bold uppercase block">RANK DROP</span>
-                    <span className="text-[9px] text-kinetic opacity-50 block tracking-widest font-bold uppercase">WEIGHT: 30%</span>
+                    <span className="text-[9px] tracking-widest font-bold uppercase block">
+                        <span className="text-muted-text opacity-50">WEIGHT: </span>
+                        <span style={{ color: getMeterColor(displacement) }}>30%</span>
+                    </span>
                 </div>
-
                 <OrbitalMeter 
-                    score={displacement} 
-                    id="dsp" 
-                    metric="DSP" 
-                    onChange={setDisplacement}
-                    showHint={!userHasInteracted}
-                    onInteract={() => setUserHasInteracted(true)}
+                    score={displacement} id="dsp" metric="DSP" 
+                    onChange={setDisplacement} showHint={!userHasInteracted} onInteract={() => setUserHasInteracted(true)}
                 />
             </div>
 
